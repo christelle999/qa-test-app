@@ -1,49 +1,55 @@
+// frontend/src/Homepage.js
 import React, { useState, useEffect } from 'react';
 
 function Homepage() {
   const [items, setItems] = useState([]);
   const [newItem, setNewItem] = useState('');
-  const [editIndex, setEditIndex] = useState(null);
-  const [editText, setEditText] = useState('');
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editedItem, setEditedItem] = useState('');
 
-  // Fetch items on load
+  const apiUrl = 'https://qa-test-app-egya.onrender.com/items';
+
   useEffect(() => {
-    fetch('https://qa-test-app-egya.onrender.com/items')
+    fetch(apiUrl)
       .then(res => res.json())
       .then(data => setItems(data))
-      .catch(err => console.error(err));
+      .catch(err => console.error('Fetch error:', err));
   }, []);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newItem.trim()) return;
-    fetch('https://qa-test-app-egya.onrender.com/items', {
+    const res = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newItem })
-    })
-      .then(res => res.json())
-      .then(item => setItems([...items, item]))
-      .finally(() => setNewItem(''));
+    });
+    const data = await res.json();
+    setItems(prev => [...prev, data]);
+    setNewItem('');
   };
 
-  const handleDelete = (id) => {
-    fetch(`https://qa-test-app-egya.onrender.com/items/${id}`, { method: 'DELETE' })
-      .then(() => setItems(items.filter(item => item.id !== id)));
+  const handleDelete = async (id) => {
+    await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+    setItems(items.filter(item => item._id !== id));
   };
 
-  const handleEdit = (id) => {
-    if (!editText.trim()) return;
-    fetch(`https://qa-test-app-egya.onrender.com/items/${id}`, {
+  const handleEdit = (index) => {
+    setEditingIndex(index);
+    setEditedItem(items[index].name);
+  };
+
+  const handleSaveEdit = async (id) => {
+    const res = await fetch(`${apiUrl}/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editText })
-    })
-      .then(res => res.json())
-      .then(updated => {
-        setItems(items.map(item => (item.id === id ? updated : item)));
-        setEditIndex(null);
-        setEditText('');
-      });
+      body: JSON.stringify({ name: editedItem })
+    });
+    const data = await res.json();
+    const updated = [...items];
+    updated[editingIndex] = data;
+    setItems(updated);
+    setEditingIndex(null);
+    setEditedItem('');
   };
 
   return (
@@ -52,29 +58,23 @@ function Homepage() {
       <input
         value={newItem}
         onChange={e => setNewItem(e.target.value)}
-        placeholder="Enter new item"
+        placeholder="Add item"
       />
       <button onClick={handleAdd} disabled={!newItem.trim()}>Add</button>
 
       <ul>
         {items.map((item, index) => (
-          <li key={item.id}>
-            {editIndex === index ? (
+          <li key={item._id}>
+            {editingIndex === index ? (
               <>
-                <input
-                  value={editText}
-                  onChange={e => setEditText(e.target.value)}
-                />
-                <button onClick={() => handleEdit(item.id)} disabled={!editText.trim()}>Save</button>
+                <input value={editedItem} onChange={e => setEditedItem(e.target.value)} />
+                <button onClick={() => handleSaveEdit(item._id)}>Save</button>
               </>
             ) : (
               <>
                 {item.name}
-                <button onClick={() => {
-                  setEditIndex(index);
-                  setEditText(item.name);
-                }}>Edit</button>
-                <button onClick={() => handleDelete(item.id)}>Delete</button>
+                <button onClick={() => handleEdit(index)}>Edit</button>
+                <button onClick={() => handleDelete(item._id)}>Delete</button>
               </>
             )}
           </li>
@@ -85,3 +85,5 @@ function Homepage() {
 }
 
 export default Homepage;
+
+
