@@ -1,133 +1,79 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import './App.css';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+// frontend/src/App.js
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Login from './Login';
+import Homepage from './Homepage';
 
 function App() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [token, setToken] = useState('');
-  const [items, setItems] = useState([]);
-  const [newItemName, setNewItemName] = useState('');
-  const [editItemId, setEditItemId] = useState(null);
-  const [editItemName, setEditItemName] = useState('');
-  const [error, setError] = useState('');
-
-  // Fetch items when logged in
-  useEffect(() => {
-    if (token) {
-      axios.get(`${API_URL}/items`)
-        .then(res => setItems(res.data))
-        .catch(() => setError('Failed to fetch items'));
-    }
-  }, [token]);
-
-  const handleLogin = () => {
-    setError('');
-    axios.post(`${API_URL}/login`, { username, password })
-      .then(res => {
-        setToken(res.data.token);
-        setUsername('');
-        setPassword('');
-      })
-      .catch(() => setError('Invalid credentials'));
-  };
-
-  const handleAdd = () => {
-    if (!newItemName.trim()) return;
-    axios.post(`${API_URL}/items`, { name: newItemName }, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => {
-        setItems([...items, res.data]);
-        setNewItemName('');
-      })
-      .catch(() => setError('Failed to add item'));
-  };
-
-  const startEdit = (item) => {
-    setEditItemId(item.id);
-    setEditItemName(item.name);
-  };
-
-  const handleEdit = () => {
-    axios.put(`${API_URL}/items/${editItemId}`, { name: editItemName }, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => {
-        setItems(items.map(i => i.id === editItemId ? res.data : i));
-        setEditItemId(null);
-        setEditItemName('');
-      })
-      .catch(() => setError('Failed to update item'));
-  };
-
-  const handleDelete = (id) => {
-    axios.delete(`${API_URL}/items/${id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(() => {
-        setItems(items.filter(i => i.id !== id));
-      })
-      .catch(() => setError('Failed to delete item'));
-  };
-
-  if (!token) {
-    return (
-      <div style={{ padding: '20px' }}>
-        <h2>Login</h2>
-        <input
-          placeholder="Username"
-          value={username}
-          onChange={e => setUsername(e.target.value)}
-        /><br /><br />
-        <input
-          placeholder="Password"
-          type="password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-        /><br /><br />
-        <button onClick={handleLogin}>Login</button>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-      </div>
-    );
-  }
-
   return (
-    <div style={{ padding: '20px' }}>
-      <h2>Items</h2>
-      <ul>
-        {items.map(item => (
-          <li key={item.id}>
-            {editItemId === item.id ? (
-              <>
-                <input
-                  value={editItemName}
-                  onChange={e => setEditItemName(e.target.value)}
-                />
-                <button onClick={handleEdit}>Save</button>
-                <button onClick={() => setEditItemId(null)}>Cancel</button>
-              </>
-            ) : (
-              <>
-                {item.name} 
-                <button onClick={() => startEdit(item)}>Edit</button>
-                <button onClick={() => handleDelete(item.id)}>Delete</button>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
-      <input
-        placeholder="New item name"
-        value={newItemName}
-        onChange={e => setNewItemName(e.target.value)}
-      />
-      <button onClick={handleAdd}>Add Item</button>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/homepage" element={<Homepage />} />
+      </Routes>
+    </Router>
   );
 }
 
 export default App;
+
+
+// frontend/src/index.js (should remain as-is unless Router isn't wrapping App)
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './App.css';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+
+// Now rename or adjust your component files:
+// frontend/src/Login.js
+// frontend/src/Homepage.js
+// Make sure they are named properly and exported as components.
+
+// Example Login.js
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+function Login() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+
+  const handleLogin = async () => {
+    const res = await fetch('https://qa-test-app-egya.onrender.com/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    if (res.ok) navigate('/homepage');
+    else alert('Invalid credentials');
+  };
+
+  return (
+    <div>
+      <h2>Login</h2>
+      <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} />
+      <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+      <button onClick={handleLogin}>Login</button>
+    </div>
+  );
+}
+
+export default Login;
+
+// Example Homepage.js
+import React from 'react';
+
+function Homepage() {
+  return <h2>Welcome to Homepage</h2>;
+}
+
+export default Homepage;
