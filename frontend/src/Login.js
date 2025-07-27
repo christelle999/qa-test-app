@@ -34,7 +34,9 @@ function Login() {
         value={password}
         onChange={e => setPassword(e.target.value)}
       />
-      <button onClick={handleLogin}>Login</button>
+      <button onClick={handleLogin} disabled={!username || !password}>
+  Login
+</button>
     </div>
   );
 }
