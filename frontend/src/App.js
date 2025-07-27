@@ -1,79 +1,53 @@
-// frontend/src/App.js
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Login from './Login';
-import Homepage from './Homepage';
+import React, { useState, useEffect } from 'react';
 
-function App() {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/homepage" element={<Homepage />} />
-      </Routes>
-    </Router>
-  );
-}
+function Homepage() {
+  const [items, setItems] = useState([]);
+  const [itemName, setItemName] = useState('');
 
-export default App;
+  useEffect(() => {
+    // Fetch items from backend when component mounts
+    fetch('https://qa-test-app-egya.onrender.com/items')
+      .then(res => res.json())
+      .then(data => setItems(data))
+      .catch(console.error);
+  }, []);
 
+  const handleAddItem = () => {
+    if (!itemName.trim()) return;
 
-// frontend/src/index.js (should remain as-is unless Router isn't wrapping App)
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import './App.css';
-
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
-
-
-// Now rename or adjust your component files:
-// frontend/src/Login.js
-// frontend/src/Homepage.js
-// Make sure they are named properly and exported as components.
-
-// Example Login.js
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
-function Login() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const navigate = useNavigate();
-
-  const handleLogin = async () => {
-    const res = await fetch('https://qa-test-app-egya.onrender.com/login', {
+    fetch('https://qa-test-app-egya.onrender.com/items', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-
-    if (res.ok) navigate('/homepage');
-    else alert('Invalid credentials');
+      body: JSON.stringify({ name: itemName }),
+    })
+      .then(res => res.json())
+      .then(newItem => {
+        setItems(prev => [...prev, newItem]);
+        setItemName('');
+      })
+      .catch(console.error);
   };
 
   return (
     <div>
-      <h2>Login</h2>
-      <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} />
-      <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
-      <button onClick={handleLogin}>Login</button>
+      <h2>Welcome to Homepage</h2>
+
+      <input
+        placeholder="New item name"
+        value={itemName}
+        onChange={e => setItemName(e.target.value)}
+      />
+      <button onClick={handleAddItem} disabled={!itemName.trim()}>
+        Add Item
+      </button>
+
+      <ul>
+        {items.map(item => (
+          <li key={item.id}>{item.name}</li>
+        ))}
+      </ul>
     </div>
   );
-}
-
-export default Login;
-
-// Example Homepage.js
-import React from 'react';
-
-function Homepage() {
-  return <h2>Welcome to Homepage</h2>;
 }
 
 export default Homepage;
